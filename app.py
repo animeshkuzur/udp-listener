@@ -5,12 +5,12 @@ from time import sleep
 import MySQLdb
 import select
 
-from config import HOST_SEND_IP, HOST_LISTEN_IP, HOST_PORT,BUFFER_SIZE, RELAY_STATUS, DOOR_STATUS, TEMP_STATUS
+from config import HOST_SEND_IP, HOST_LISTEN_IP, HOST_PORT,BUFFER_SIZE, RELAY_STATUS, DOOR_STATUS, TEMP_STATUS, MYSQL_DB, MYSQL_USER,MYSQL_PASSWORD,MYSQL_HOST
 
 class App():
 	def __init__():
 		try:
-			self._conn = MySQLdb.connect("localhost","root","password","silop")
+			self._conn = MySQLdb.connect(MYSQL_HOST,MYSQL_USER,MYSQL_PASSWORD,MYSQL_DB)
 			self._c = conn.cursor()
 			self._socket_listen = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 			self._socket_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
@@ -21,20 +21,33 @@ class App():
     def listener(self):
     	while True:
     		result = select.select([self._socket_listen], [], [])
-        	msg = result[0][0].recv(bufferSize)
-			if (msg[18]==21 && msg[22]==50 && msg[25]==1 && msg[26]==248):
+        	msg = result[0][0].recv(BUFFER_SIZE)
+			if (msg[18]==21 && msg[22]==50 && msg[25]==1 && msg[26]==248): #SWITCH
 	            self._c.execute("""UPDATE switches (status) VALUES (0);""")
 	            self._conn.commit()
-	        if (msg[18]==21 && msg[22]==50 && msg[25]==2 && msg[26]==248):
+	        if (msg[18]==21 && msg[22]==50 && msg[25]==2 && msg[26]==248): #DOOR
 	        	self._c.execute("""UPDATE doors (status) VALUES (0);""")
 	            self._conn.commit()
-	        if (msg[18]==20 && msg[21]==219 and msg[22]==1):
+	        if (msg[18]==20 && msg[21]==219 and msg[22]==1): #DIGITAL SENSOR
 	        	d1=msg[25]
                 d2=msg[26]
                 lux=msg[27]
                 motion=msg[28]
 	        	self._c.execute("""UPDATE sensors (status) VALUES (%d);""",d1)
 	            self._conn.commit()
+	        if(msg[18] == 21 && msg[22] == 52 && msg[25] == 4): #RELAY
+	        	if(msg[26]==100):
+	        		self._c.execute("""UPDATE switches (status) VALUES (1);""") #CH1
+	            	self._conn.commit()
+	        	if(msg[27]==100):
+	        		self._c.execute("""UPDATE doors (status) VALUES (1);""") #CH2
+	            	self._conn.commit()
+	        if(msg[18] == 20 && msg[21]==220 && msg[22]==1): #TEMP
+	        	t = msg[26]
+	        	t = (5/9)*(t-32)
+	        	self._c.execute("""INSERT INTO temp_log (temp) VALUES (%d);""",t)
+	            self._conn.commit()
+
 
 	def query(self):
 		while True:
