@@ -10,7 +10,7 @@ from config import HOST_SEND_IP, HOST_LISTEN_IP, HOST_PORT,BUFFER_SIZE, RELAY_ST
 class App():
 	def __init__():
 		try:
-			self._conn = MySQLdb.connect("localhost","root","anni99K","silop")
+			self._conn = MySQLdb.connect("localhost","root","password","silop")
 			self._c = conn.cursor()
 			self._socket_listen = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 			self._socket_send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
